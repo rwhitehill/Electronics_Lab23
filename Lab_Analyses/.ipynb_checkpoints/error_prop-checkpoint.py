@@ -6,6 +6,7 @@
 ###########################################################################################
 
 import sympy as sp
+import numpy as np
 import pint
 
 ureg = pint.UnitRegistry()
@@ -35,7 +36,6 @@ def get_error(expr,variables):
         first entry is an array of measurements and the second entry is an array of errors
         or a single value if constant error for each measurement
     '''
-    # need to implement units with pint
     variable_list = list(variables.keys())
     symbol_list   = []
     param_list    = []
@@ -52,7 +52,6 @@ def get_error(expr,variables):
     return err_num_expr(*param_list)
 
 def get_nominal(expr,variables):
-    # need to implement units with pint
     variable_list = list(variables.keys())
     symbol_list   = []
     param_list    = []
@@ -70,6 +69,19 @@ def get_nominal_error(expr,variables):
     err = get_error(expr,variables)
     return nom,err
 
-def print_err_report(expr,variables,desired_units=''):
+def print_err_report(expr,variables,desired_units='',out_type='console'):
     nom,err = get_nominal_error(expr,variables)
-    print('{:P} +- {:P}'.format(nom,err))
+    
+    place = -int(np.floor(np.log10(abs(err.magnitude))))
+    nom = Q_(round(nom.magnitude,place),nom.units)
+    err = Q_(round(err.magnitude,place),err.units)
+    
+    if desired_units != '':
+        nom = nom.to(desired_units)
+        err = err.to(desired_units)
+        
+    if out_type.lower() == 'console':
+        print('{:P} +- {:P}'.format(nom,err))
+    elif out_type.lower() == 'latex':
+        print('{:Lx} \pm {:Lx}'.format(nom,err))
+        

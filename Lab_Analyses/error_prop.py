@@ -71,17 +71,36 @@ def get_nominal_error(expr,variables):
 
 def print_err_report(expr,variables,desired_units='',out_type='console'):
     nom,err = get_nominal_error(expr,variables)
+    err = err.to(nom.units)
     
-    place = -int(np.floor(np.log10(abs(err.magnitude))))
-    nom = Q_(round(nom.magnitude,place),nom.units)
-    err = Q_(round(err.magnitude,place),err.units)
+    place = -np.floor(np.log10(abs(err.magnitude))).astype(int)
+    if not isinstance(place,np.int64):
+        nom = Q_(np.array([np.around(nom[_].magnitude,place[_]) for _ in range(len(place))]),nom.units)
+        err = Q_(np.array([np.around(err[_].magnitude,place[_]) for _ in range(len(place))]),err.units)
+    else:
+        nom = Q_(np.around(nom.magnitude,place),nom.units)
+        err = Q_(np.around(err.magnitude,place),err.units)
     
     if desired_units != '':
         nom = nom.to(desired_units)
         err = err.to(desired_units)
-        
-    if out_type.lower() == 'console':
-        print('{:P} +- {:P}'.format(nom,err))
-    elif out_type.lower() == 'latex':
-        print('{:Lx} \pm {:Lx}'.format(nom,err))
+    
+    if isinstance(nom.magnitude,np.ndarray):
+        if isinstance(err.magnitude,np.ndarray):
+            for nom_,err_ in zip(nom,err):
+                if out_type.lower() == 'console':
+                    print('{:P} +- {:P}'.format(nom_,err_))
+                elif out_type.lower() == 'latex':
+                    print('{:Lx} \pm {:Lx}'.format(nom_,err_))
+        else:
+            for nom_ in nom:
+                if out_type.lower() == 'console':
+                    print('{:P} +- {:P}'.format(nom_,err))
+                elif out_type.lower() == 'latex':
+                    print('{:Lx} \pm {:Lx}'.format(nom_,err))
+    else:
+        if out_type.lower() == 'console':
+            print('{:P} +- {:P}'.format(nom,err))
+        elif out_type.lower() == 'latex':
+            print('{:Lx} \pm {:Lx}'.format(nom,err))
         
